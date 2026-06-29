@@ -1,0 +1,93 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Perfil {
+  ADMIN
+  ESTUDANTE
+}
+
+enum TipoTransporte {
+  ONIBUS
+  VAN
+  CARRO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  perfil    Perfil   @default(ESTUDANTE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  aluno     Aluno?   // 1-to-1 relation with Aluno
+}
+
+model Motorista {
+  id          String       @id @default(uuid())
+  nome        String
+  telefone    String
+  CNH         String       @unique
+  transportes Transporte[]
+}
+
+model Transporte {
+  id          String         @id @default(uuid())
+  nome        String
+  tipo        TipoTransporte
+  capacidade  Int
+  gratuito    Boolean
+  valor       Float?         // Nullable if gratuito = true
+  motoristaId String
+  motorista   Motorista      @relation(fields: [motoristaId], references: [id])
+  rota        Rota?          // 1-to-1 relationship (or 1-to-many, we'll implement 1-to-1)
+  alunos      Aluno[]
+  avisos      Aviso[]
+  pontos      Ponto[]
+}
+
+model Aluno {
+  id           String      @id @default(uuid())
+  nome         String
+  matricula    String      @unique
+  curso        String
+  telefone     String
+  transporteId String?
+  transporte   Transporte? @relation(fields: [transporteId], references: [id])
+  userId       String?     @unique
+  user         User?       @relation(fields: [userId], references: [id])
+}
+
+model Rota {
+  id             String     @id @default(uuid())
+  nome           String
+  horarioSaida   String     // HH:MM format
+  horarioChegada String     // HH:MM format
+  transporteId   String     @unique
+  transporte     Transporte @relation(fields: [transporteId], references: [id], onDelete: Cascade)
+}
+
+model Ponto {
+  id           String     @id @default(uuid())
+  nome         String
+  endereco     String
+  latitude     Float?     // For leaflet map placement
+  longitude    Float?     // For leaflet map placement
+  transporteId String
+  transporte   Transporte @relation(fields: [transporteId], references: [id], onDelete: Cascade)
+}
+
+model Aviso {
+  id           String     @id @default(uuid())
+  titulo       String
+  descricao    String
+  data         DateTime   @default(now())
+  transporteId String
+  transporte   Transporte @relation(fields: [transporteId], references: [id], onDelete: Cascade)
+}
